@@ -50,3 +50,29 @@ def test_retriever_search():
         print(
             doc.page_content[:300]
         )
+
+
+def test_retrieved_content():
+
+    vectorstore = ingest_document(
+        PDF_PATH
+    )
+
+
+    retriever = get_retriever(
+        vectorstore
+    )
+
+
+    docs = retriever.invoke(
+        "How can I reset my password?"
+    )
+
+
+    contents = " ".join(
+        doc.page_content.lower()
+        for doc in docs
+    )
+
+
+    assert "password" in contents
