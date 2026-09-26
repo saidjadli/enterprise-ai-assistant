@@ -17,3 +17,5 @@ tests
 
 
 *.ipynb
+
+node_modules
