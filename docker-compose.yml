@@ -14,7 +14,43 @@ services:
       - .env
 
     volumes:
-      - ./vectorstore:/app/vectorstore
+      - chroma_data:/app/vectorstore
+
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+    restart: unless-stopped
+
+
+  ingestion:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+
+    env_file:
+      - .env
+
+    volumes:
+      - chroma_data:/app/vectorstore
+
+    command:
+      [
+        "python",
+        "scripts/ingest.py"
+      ]
+
+    profiles:
+      - ingestion
 
 
   frontend:
@@ -31,4 +67,12 @@ services:
       - BACKEND_URL=http://backend:8000/api/ask
 
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
+
+    restart: unless-stopped
+
+
+volumes:
+
+  chroma_data:
