@@ -7,7 +7,7 @@ from backend.api.schemas import (
 )
 
 
-from backend.rag.pipeline import ingest_document
+from backend.rag.load_vectorstore import load_vectorstore
 
 from backend.rag.retriever import get_retriever
 
@@ -21,17 +21,12 @@ router = APIRouter()
 
 
 
-PDF_PATH = (
-    "data/documents/security_policy.pdf"
-)
 
 
 
 # Initialisation RAG
 
-vectorstore = ingest_document(
-    PDF_PATH
-)
+vectorstore = load_vectorstore()
 
 
 retriever = get_retriever(
