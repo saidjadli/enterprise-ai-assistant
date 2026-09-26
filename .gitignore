@@ -5,21 +5,26 @@ __pycache__/
 
 .venv
 .env
+.env.*
+!.env.example
+
 
 
 vectorstore/
 *.db
 
-data/documents/*
+
 
 .vscode/
 
 .DS_Store
 Thumbs.db
 
+
 *.log
 
 .coverage
 .pytest_cache/
+htmlcov/
 
 entreprise_assistant_ai.pdf
