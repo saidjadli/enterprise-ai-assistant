@@ -15,12 +15,16 @@ from backend.rag.chain import create_rag_chain
 
 from backend.rag.service import ask_question
 
+from fastapi import HTTPException
+
+from backend.utils.logger import get_logger
+
+
+logger = get_logger(__name__)
+
 
 
 router = APIRouter()
-
-
-
 
 
 
@@ -44,9 +48,23 @@ rag_chain = create_rag_chain(
     "/ask",
     response_model=AnswerResponse
 )
+
+
+
 def ask(
     request: QuestionRequest
 ):
+
+    if not request.question.strip():
+
+        raise HTTPException(
+            status_code=400,
+            detail="Question cannot be empty"
+        )
+
+    logger.info(
+    f"User question: {request.question}"
+)
 
 
     response = ask_question(
