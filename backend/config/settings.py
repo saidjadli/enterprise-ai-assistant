@@ -3,13 +3,20 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
 
-    app_name: str = "Enterprise AI Assistant"
+    APP_NAME: str = "Enterprise Knowledge Assistant"
 
-    version: str = "0.1.0"
+    ENVIRONMENT: str = "development"
 
-    environment: str = "development"
+    GROQ_API_KEY: str
 
-    groq_api_key: str
+    MODEL_NAME: str = "openai/gpt-oss-20b"
+
+    VECTORSTORE_PATH: str = "vectorstore/chroma_db"
+
+
+    BACKEND_HOST: str = "127.0.0.1"
+
+    BACKEND_PORT: int = 8000
 
 
     model_config = SettingsConfigDict(

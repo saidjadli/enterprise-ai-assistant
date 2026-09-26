@@ -1,9 +1,9 @@
 from langchain_chroma import Chroma
 
 from backend.rag.embeddings import get_embedding_model
+from backend.config.settings import settings
 
 
-VECTORSTORE_PATH = "vectorstore/chroma_db"
 
 
 
@@ -13,7 +13,7 @@ def load_vectorstore():
 
 
     vectorstore = Chroma(
-        persist_directory=VECTORSTORE_PATH,
+        persist_directory=settings.VECTORSTORE_PATH,
         embedding_function=embeddings
     )
 

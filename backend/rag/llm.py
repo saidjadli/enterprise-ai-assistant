@@ -6,9 +6,9 @@ from backend.config.settings import settings
 def get_llm():
 
     llm = ChatGroq(
-        model="openai/gpt-oss-20b",
+        model=settings.MODEL_NAME,
         temperature=0.1,
-        api_key=settings.groq_api_key
+        api_key=settings.GROQ_API_KEY
     )
 
     return llm
