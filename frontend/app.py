@@ -85,7 +85,7 @@ if question:
             json={
                 "question": question
             },
-            timeout=60
+            timeout=180
 
         )
 
