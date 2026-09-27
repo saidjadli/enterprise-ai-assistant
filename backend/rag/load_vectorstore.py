@@ -32,3 +32,27 @@ def load_vectorstore():
 
 
     return vectorstore
+
+
+
+def add_documents(chunks):
+
+    logger.info(
+        "Adding documents to vector database..."
+    )
+
+
+    vectorstore = load_vectorstore()
+
+
+    vectorstore.add_documents(
+        chunks
+    )
+
+
+    logger.info(
+        "Documents added successfully"
+    )
+
+
+    return vectorstore

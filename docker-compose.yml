@@ -15,6 +15,7 @@ services:
 
     volumes:
       - chroma_data:/app/vectorstore
+      - ./data/documents:/app/data/documents
 
     healthcheck:
       test:
@@ -27,7 +28,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-      start_period: 60s
+      start_period: 180s
 
     restart: unless-stopped
 
@@ -42,6 +43,7 @@ services:
 
     volumes:
       - chroma_data:/app/vectorstore
+      - ./data/documents:/app/data/documents
 
     command:
       [

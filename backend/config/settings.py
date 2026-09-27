@@ -13,6 +13,10 @@ class Settings(BaseSettings):
 
     VECTORSTORE_PATH: str = "vectorstore/chroma_db"
 
+    DOCUMENT_PATH: str = "data/documents"
+
+    MAX_FILE_SIZE_MB: int = 20
+
 
     BACKEND_HOST: str = "127.0.0.1"
 

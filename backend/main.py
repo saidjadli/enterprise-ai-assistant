@@ -6,7 +6,7 @@ from backend.config.settings import settings
 
 from backend.utils.logger import get_logger
 
-
+from backend.api.documents import router as documents_router
 
 logger = get_logger(__name__)
 
@@ -24,6 +24,9 @@ app.include_router(
     prefix="/api"
 )
 
+app.include_router(
+    documents_router
+)
 
 
 @app.on_event("startup")

@@ -13,8 +13,8 @@ from backend.rag.pipeline import ingest_document
 
 
 
-PDF_PATH = (
-    "data/documents/security_policy.pdf"
+DOCUMENT_DIR = Path(
+    "data/documents"
 )
 
 
@@ -22,17 +22,35 @@ PDF_PATH = (
 def main():
 
     print(
-        "Starting document ingestion..."
+        "Starting documents ingestion..."
     )
 
 
-    vectorstore = ingest_document(
-        PDF_PATH
+    pdf_files = DOCUMENT_DIR.glob(
+        "*.pdf"
     )
+
+
+    count = 0
+
+
+    for pdf in pdf_files:
+
+        print(
+            f"Ingesting: {pdf.name}"
+        )
+
+
+        ingest_document(
+            str(pdf)
+        )
+
+
+        count += 1
 
 
     print(
-        "Vectorstore created successfully"
+        f"{count} documents indexed successfully"
     )
 
 
