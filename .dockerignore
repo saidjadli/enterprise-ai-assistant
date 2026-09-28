@@ -11,6 +11,9 @@ __pycache__
 
 .env
 
+# Persistent data must come from the volume, never from an image layer.
+vectorstore/
+
 *.md
 
 tests
@@ -19,3 +22,4 @@ tests
 *.ipynb
 
 node_modules
+ 
