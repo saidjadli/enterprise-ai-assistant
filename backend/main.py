@@ -8,7 +8,7 @@ from backend.auth.models import init_database
 
 from backend.config.settings import settings
 from backend.utils.logger import get_logger
-
+from backend.conversations.routes import router as conversations_router
 
 logger = get_logger(__name__)
 
@@ -47,6 +47,11 @@ app.include_router(
     documents_router
 )
 
+
+app.include_router(
+    conversations_router,
+    prefix="/api"
+)
 
 
 # Application startup

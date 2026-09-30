@@ -1,20 +1,35 @@
 import sqlite3
-import uuid
 from datetime import datetime
 
 
-DATABASE = "/app/data/users.db"
+DATABASE_PATH = "/app/data/users.db"
+
 
 
 def get_connection():
-    return sqlite3.connect(DATABASE)
+
+    return sqlite3.connect(
+        DATABASE_PATH
+    )
 
 
-def create_conversation(user_id: int, title: str):
+
+def create_conversation(
+    user_id,
+    title
+):
+
     conn = get_connection()
     cursor = conn.cursor()
 
-    conversation_id = str(uuid.uuid4())
+
+    conversation_id = str(__import__("uuid").uuid4())
+
+
+    now = datetime.utcnow().strftime(
+        "%Y-%m-%d %H:%M:%S"
+    )
+
 
     cursor.execute(
         """
@@ -22,32 +37,44 @@ def create_conversation(user_id: int, title: str):
         (
             id,
             user_id,
-            title
+            title,
+            created_at,
+            updated_at
         )
-        VALUES (?, ?, ?)
+        VALUES (?, ?, ?, ?, ?)
         """,
         (
             conversation_id,
             user_id,
-            title
+            title,
+            now,
+            now
         )
     )
 
+
     conn.commit()
     conn.close()
+
 
     return conversation_id
 
 
 
 def add_message(
-    conversation_id: str,
-    role: str,
-    content: str
+    conversation_id,
+    role,
+    content
 ):
 
     conn = get_connection()
     cursor = conn.cursor()
+
+
+    now = datetime.utcnow().strftime(
+        "%Y-%m-%d %H:%M:%S"
+    )
+
 
     cursor.execute(
         """
@@ -55,45 +82,115 @@ def add_message(
         (
             conversation_id,
             role,
-            content
+            content,
+            created_at
         )
-        VALUES (?, ?, ?)
+        VALUES (?, ?, ?, ?)
         """,
         (
             conversation_id,
             role,
-            content
+            content,
+            now
         )
     )
+
 
     conn.commit()
     conn.close()
 
 
 
-def get_conversation_messages(conversation_id: str):
+def get_user_conversations(
+    user_id
+):
 
     conn = get_connection()
     cursor = conn.cursor()
 
+
     cursor.execute(
         """
-        SELECT role, content
-        FROM messages
-        WHERE conversation_id = ?
-        ORDER BY created_at ASC
+        SELECT
+            id,
+            title,
+            created_at,
+            updated_at
+        FROM conversations
+        WHERE user_id = ?
+        ORDER BY updated_at DESC
         """,
-        (conversation_id,)
+        (
+            user_id,
+        )
     )
 
-    messages = cursor.fetchall()
+
+    rows = cursor.fetchall()
 
     conn.close()
 
-    return [
-        {
-            "role": message[0],
-            "content": message[1]
-        }
-        for message in messages
-    ]
+
+    conversations = []
+
+
+    for row in rows:
+
+        conversations.append(
+            {
+                "id": row[0],
+                "title": row[1],
+                "created_at": row[2],
+                "updated_at": row[3]
+            }
+        )
+
+
+    return conversations
+
+
+
+def get_conversation_messages(
+    conversation_id
+):
+
+    conn = get_connection()
+    cursor = conn.cursor()
+
+
+    cursor.execute(
+        """
+        SELECT
+            role,
+            content,
+            created_at
+        FROM messages
+        WHERE conversation_id = ?
+        ORDER BY id ASC
+        """,
+        (
+            conversation_id,
+        )
+    )
+
+
+    rows = cursor.fetchall()
+
+    conn.close()
+
+
+    messages = []
+
+
+    for row in rows:
+
+        messages.append(
+            {
+                "role": row[0],
+                "content": row[1],
+                "created_at": row[2]
+            }
+        )
+
+
+    return messages
