@@ -5,8 +5,13 @@ from fastapi import UploadFile
 
 from backend.config.settings import settings
 from backend.rag.pipeline import ingest_document
-from backend.utils.logger import get_logger
 from backend.rag.vectorstore import delete_document_vectors
+from backend.utils.logger import get_logger
+
+from backend.services.status_service import (
+    update_document_status
+)
+
 
 logger = get_logger(__name__)
 
@@ -46,7 +51,15 @@ def save_document(
     )
 
 
+    update_document_status(
+        file.filename,
+        "uploaded"
+    )
+
+
     return file_path
+
+
 
 
 
@@ -54,19 +67,53 @@ def index_document(
     file_path: Path
 ):
 
-    logger.info(
-        f"Indexing document: {file_path}"
-    )
+    try:
+
+        update_document_status(
+            file_path.name,
+            "processing"
+        )
 
 
-    ingest_document(
-        str(file_path)
-    )
+        logger.info(
+            f"Starting indexing: {file_path.name}"
+        )
 
 
-    logger.info(
-        "Document indexed successfully"
-    )
+        ingest_document(
+            str(file_path)
+        )
+
+
+        update_document_status(
+            file_path.name,
+            "indexed"
+        )
+
+
+        logger.info(
+            f"Indexing completed successfully: {file_path.name}"
+        )
+
+
+    except Exception as e:
+
+
+        update_document_status(
+            file_path.name,
+            "failed",
+            error=str(e)
+        )
+
+
+        logger.error(
+            f"Indexing failed for {file_path.name}: {e}"
+        )
+
+
+        raise
+
+
 
 
 
@@ -91,6 +138,8 @@ def list_documents():
 
 
 
+
+
 def delete_document(
     filename: str
 ):
@@ -103,15 +152,23 @@ def delete_document(
         return False
 
 
+
     # supprimer le PDF
 
     file_path.unlink()
+
 
 
     # supprimer les embeddings Chroma
 
     delete_document_vectors(
         filename
+    )
+
+
+    update_document_status(
+        filename,
+        "deleted"
     )
 
 
