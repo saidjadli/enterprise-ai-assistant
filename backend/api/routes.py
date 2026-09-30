@@ -4,21 +4,33 @@ from fastapi import APIRouter
 from fastapi import HTTPException
 from fastapi import Depends
 
+
 from backend.api.schemas import (
     QuestionRequest,
     AnswerResponse
 )
+
 
 from backend.rag.load_vectorstore import load_vectorstore
 from backend.rag.retriever import get_retriever
 from backend.rag.chain import create_rag_chain
 from backend.rag.service import ask_question
 
+
 from backend.memory.redis_memory import ConversationMemory
+
 
 from backend.auth.dependencies import get_current_user
 
+
+from backend.conversations.service import (
+    create_conversation,
+    add_message
+)
+
+
 from backend.utils.logger import get_logger
+
 
 
 logger = get_logger(__name__)
@@ -26,9 +38,6 @@ logger = get_logger(__name__)
 
 router = APIRouter()
 
-
-
-# RAG INITIALIZATION
 
 
 vectorstore = load_vectorstore()
@@ -45,15 +54,8 @@ rag_chain = create_rag_chain(
 
 
 
-# CONVERSATION MEMORY
-
-
 memory = ConversationMemory()
 
-
-
-# ASK QUESTION
-# JWT PROTECTED ENDPOINT
 
 
 @router.post(
@@ -67,9 +69,6 @@ def ask(
     )
 ):
 
-    
-    # Validate question
-    
 
     if not request.question.strip():
 
@@ -79,19 +78,18 @@ def ask(
         )
 
 
-    
-    # Conversation ID
-    
 
-    conversation_id = (
-        request.conversation_id
-        or str(uuid4())
-    )
+    conversation_id = request.conversation_id
 
 
-    
-    # Logging
-    
+    if conversation_id is None:
+
+        conversation_id = create_conversation(
+            user_id=current_user["id"],
+            title=request.question[:50]
+        )
+
+
 
     logger.info(
         f"User question: {request.question} "
@@ -101,11 +99,16 @@ def ask(
     )
 
 
-    
-    # RAG processing
-    
 
     try:
+
+        add_message(
+            conversation_id,
+            "user",
+            request.question
+        )
+
+
 
         response = ask_question(
             request.question,
@@ -116,7 +119,20 @@ def ask(
         )
 
 
+
+        add_message(
+            conversation_id,
+            "assistant",
+            response["answer"]
+        )
+
+
+
+        response["conversation_id"] = conversation_id
+
+
         return response
+
 
 
     except Exception as e:
@@ -135,8 +151,6 @@ def ask(
         ) from e
 
 
-
-# CLEAR CONVERSATION
 
 
 @router.delete(
