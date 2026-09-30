@@ -1,4 +1,3 @@
-from langchain_core.runnables import RunnablePassthrough
 from langchain_core.output_parsers import StrOutputParser
 
 
@@ -7,22 +6,36 @@ from backend.rag.prompts import RAG_PROMPT
 from backend.rag.utils import format_documents
 
 
-
-def create_rag_chain(retriever):
+def create_rag_chain(
+    retriever=None
+):
 
 
     llm = get_llm()
+
+
+    def build_context(inputs):
+
+        documents = inputs.get(
+            "context",
+            []
+        )
+
+
+        return format_documents(
+            documents
+        )
 
 
     rag_chain = (
 
         {
             "context":
-                retriever 
-                | format_documents,
+                build_context,
 
             "question":
-                RunnablePassthrough()
+                lambda inputs:
+                inputs["question_with_history"]
         }
 
         |

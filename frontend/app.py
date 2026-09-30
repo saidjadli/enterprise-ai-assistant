@@ -1,6 +1,8 @@
-import streamlit as st
-import requests
 import os
+from uuid import uuid4
+
+import requests
+import streamlit as st
 
 
 API_URL = os.getenv(
@@ -9,32 +11,75 @@ API_URL = os.getenv(
 )
 
 
-
 st.set_page_config(
     page_title="Enterprise AI Assistant",
     page_icon="🤖"
 )
 
 
+st.title(
+    "🤖 Enterprise Knowledge Assistant"
+)
 
-st.title("🤖 Enterprise Knowledge Assistant")
 
 st.write(
     "Ask questions about company documents."
 )
 
 
+# Persistent conversation identifier
+if "conversation_id" not in st.session_state:
 
-# Historique conversation
+    st.session_state.conversation_id = str(
+        uuid4()
+    )
 
+
+# UI history
 if "messages" not in st.session_state:
 
     st.session_state.messages = []
 
 
+# Start a new conversation
+if st.button(
+    "🆕 New conversation"
+):
 
-# Affichage historique
+    clear_url = (
+        API_URL.rsplit(
+            "/api/ask",
+            1
+        )[0]
+        + "/api/conversations/"
+        + st.session_state.conversation_id
+    )
 
+
+    try:
+
+        requests.delete(
+            clear_url,
+            timeout=10
+        )
+
+    except requests.RequestException:
+
+        pass
+
+
+    st.session_state.conversation_id = str(
+        uuid4()
+    )
+
+
+    st.session_state.messages = []
+
+
+    st.rerun()
+
+
+# Display previous messages
 for message in st.session_state.messages:
 
     with st.chat_message(
@@ -46,35 +91,30 @@ for message in st.session_state.messages:
         )
 
 
-
-# Input utilisateur
-
+# User input
 question = st.chat_input(
     "Ask your question..."
 )
 
 
-
 if question:
-
-
-    # Ajouter question
 
     st.session_state.messages.append(
         {
-            "role":"user",
-            "content":question
+            "role": "user",
+            "content": question
         }
     )
 
 
-    with st.chat_message("user"):
+    with st.chat_message(
+        "user"
+    ):
 
-        st.markdown(question)
+        st.markdown(
+            question
+        )
 
-
-
-    # Appel API FastAPI
 
     try:
 
@@ -83,15 +123,19 @@ if question:
             API_URL,
 
             json={
-                "question": question
+                "question": question,
+                "conversation_id":
+                    st.session_state.conversation_id
             },
-            timeout=180
 
+            timeout=180
         )
 
 
-        data = response.json()
+        response.raise_for_status()
 
+
+        data = response.json()
 
 
         answer = data["answer"]
@@ -99,15 +143,19 @@ if question:
         sources = data["sources"]
 
 
+        # Use the ID returned by the backend
+        st.session_state.conversation_id = data[
+            "conversation_id"
+        ]
 
-        # Afficher réponse
 
         with st.chat_message(
             "assistant"
         ):
 
-            st.markdown(answer)
-
+            st.markdown(
+                answer
+            )
 
 
             st.subheader(
@@ -124,17 +172,22 @@ if question:
 
 
         st.session_state.messages.append(
-
             {
-                "role":"assistant",
-                "content":answer
+                "role": "assistant",
+                "content": answer
             }
+        )
 
+
+    except requests.RequestException as e:
+
+        st.error(
+            f"API Error: {e}"
         )
 
 
     except Exception as e:
 
         st.error(
-            f"API Error: {e}"
+            f"Unexpected error: {e}"
         )
