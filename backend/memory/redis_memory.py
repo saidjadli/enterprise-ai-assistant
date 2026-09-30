@@ -13,12 +13,10 @@ class ConversationMemory:
             "redis://localhost:6379/0"
         )
 
-
         self.client = redis.Redis.from_url(
             redis_url,
             decode_responses=True
         )
-
 
         self.max_messages = int(
             os.getenv(
@@ -26,7 +24,6 @@ class ConversationMemory:
                 "20"
             )
         )
-
 
         self.ttl_seconds = int(
             os.getenv(
@@ -56,13 +53,11 @@ class ConversationMemory:
             conversation_id
         )
 
-
         messages = self.client.lrange(
             key,
             0,
             self.max_messages - 1
         )
-
 
         return [
             json.loads(message)
@@ -81,7 +76,6 @@ class ConversationMemory:
             conversation_id
         )
 
-
         message = json.dumps(
             {
                 "role": role,
@@ -90,26 +84,40 @@ class ConversationMemory:
             ensure_ascii=False
         )
 
-
         self.client.rpush(
             key,
             message
         )
 
-
-        # Keep only the latest messages
         self.client.ltrim(
             key,
             -self.max_messages,
             -1
         )
 
-
-        # Refresh expiration on every new message
         self.client.expire(
             key,
             self.ttl_seconds
         )
+
+
+    def restore(
+        self,
+        conversation_id,
+        messages
+    ):
+
+        self.clear(
+            conversation_id
+        )
+
+        for message in messages:
+
+            self.add_message(
+                conversation_id,
+                message["role"],
+                message["content"]
+            )
 
 
     def clear(

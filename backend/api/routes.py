@@ -1,5 +1,3 @@
-from uuid import uuid4
-
 from fastapi import APIRouter
 from fastapi import HTTPException
 from fastapi import Depends
@@ -15,9 +13,13 @@ from backend.rag.load_vectorstore import load_vectorstore
 from backend.rag.retriever import get_retriever
 from backend.rag.chain import create_rag_chain
 from backend.rag.service import ask_question
+
+
 from backend.services.title_generator import generate_title
 
+
 from backend.memory.redis_memory import ConversationMemory
+from backend.memory.history_loader import load_conversation_history
 
 
 from backend.auth.dependencies import get_current_user
@@ -42,7 +44,6 @@ router = APIRouter()
 
 vectorstore = load_vectorstore()
 
-
 retriever = get_retriever(
     vectorstore
 )
@@ -51,7 +52,6 @@ retriever = get_retriever(
 rag_chain = create_rag_chain(
     retriever
 )
-
 
 
 memory = ConversationMemory()
@@ -69,14 +69,12 @@ def ask(
     )
 ):
 
-
     if not request.question.strip():
 
         raise HTTPException(
             status_code=400,
             detail="Question cannot be empty"
         )
-
 
 
     conversation_id = request.conversation_id
@@ -92,14 +90,24 @@ def ask(
         )
 
 
+    history = load_conversation_history(
+        conversation_id
+    )
+
+
+    if history:
+
+        memory.restore(
+            conversation_id,
+            history
+        )
+
 
     logger.info(
         f"User question: {request.question} "
         f"| user_id={current_user['id']} "
-        f"| email={current_user['email']} "
         f"| conversation_id={conversation_id}"
     )
-
 
 
     try:
@@ -111,7 +119,6 @@ def ask(
         )
 
 
-
         response = ask_question(
             request.question,
             conversation_id,
@@ -121,7 +128,6 @@ def ask(
         )
 
 
-
         add_message(
             conversation_id,
             "assistant",
@@ -129,12 +135,10 @@ def ask(
         )
 
 
-
         response["conversation_id"] = conversation_id
 
 
         return response
-
 
 
     except Exception as e:
@@ -146,12 +150,8 @@ def ask(
 
         raise HTTPException(
             status_code=500,
-            detail=(
-                "An error occurred while "
-                "processing the question"
-            )
+            detail="An error occurred while processing the question"
         ) from e
-
 
 
 
@@ -167,7 +167,6 @@ def clear_conversation(
         memory.clear(
             conversation_id
         )
-
 
         return {
             "message":
