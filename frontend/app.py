@@ -1,5 +1,6 @@
 import streamlit as st
 import requests
+import json
 
 
 API_URL = "http://backend:8000/api"
@@ -54,15 +55,6 @@ st.markdown(
 }
 
 
-.suggestion {
-
-    background:#161b27;
-    padding:15px;
-    border-radius:12px;
-
-}
-
-
 </style>
 """,
     unsafe_allow_html=True
@@ -70,25 +62,33 @@ st.markdown(
 
 
 
-
-# Session
-
-
-
 if "token" not in st.session_state:
-    st.session_state.token=None
+
+    st.session_state.token = st.query_params.get("token")
 
 
 if "user" not in st.session_state:
-    st.session_state.user=None
+
+    user_data = st.query_params.get("user")
+
+    if user_data:
+        st.session_state.user = json.loads(user_data)
+
+    else:
+        st.session_state.user = None
+
 
 
 if "conversation_id" not in st.session_state:
-    st.session_state.conversation_id=None
+
+    st.session_state.conversation_id = None
+
 
 
 if "messages" not in st.session_state:
-    st.session_state.messages=[]
+
+    st.session_state.messages = []
+
 
 
 
@@ -104,7 +104,23 @@ def headers():
 
 
 
-# Authentication
+def save_session():
+
+    st.query_params["token"] = st.session_state.token
+
+    st.query_params["user"] = json.dumps(
+        st.session_state.user
+    )
+
+
+
+
+def clear_session():
+
+    st.query_params.clear()
+
+    st.session_state.clear()
+
 
 
 
@@ -125,12 +141,12 @@ Enterprise Knowledge Assistant
     )
 
 
-    email=st.text_input(
+    email = st.text_input(
         "Email"
     )
 
 
-    password=st.text_input(
+    password = st.text_input(
         "Password",
         type="password"
     )
@@ -142,7 +158,7 @@ Enterprise Knowledge Assistant
     ):
 
 
-        r=requests.post(
+        r = requests.post(
 
             f"{API_URL}/auth/login",
 
@@ -157,19 +173,24 @@ Enterprise Knowledge Assistant
         )
 
 
-        if r.status_code==200:
+        if r.status_code == 200:
 
 
-            data=r.json()
+            data = r.json()
 
 
-            st.session_state.token=data["access_token"]
+            st.session_state.token = data["access_token"]
 
-            st.session_state.user=data["user"]
+            st.session_state.user = data["user"]
+
+
+            save_session()
+
 
             st.success(
                 "Login successful"
             )
+
 
             st.rerun()
 
@@ -183,16 +204,10 @@ Enterprise Knowledge Assistant
 
 
 
-
-
-# API
-
-
-
 def get_conversations():
 
 
-    r=requests.get(
+    r = requests.get(
 
         f"{API_URL}/conversations",
 
@@ -201,7 +216,7 @@ def get_conversations():
     )
 
 
-    if r.status_code==200:
+    if r.status_code == 200:
 
         return r.json()
 
@@ -214,7 +229,7 @@ def get_conversations():
 def get_conversation(cid):
 
 
-    r=requests.get(
+    r = requests.get(
 
         f"{API_URL}/conversations/{cid}",
 
@@ -223,7 +238,7 @@ def get_conversation(cid):
     )
 
 
-    if r.status_code==200:
+    if r.status_code == 200:
 
         return r.json()["messages"]
 
@@ -236,7 +251,7 @@ def get_conversation(cid):
 def remove_conversation(cid):
 
 
-    requests.delete(
+    r = requests.delete(
 
         f"{API_URL}/conversations/{cid}",
 
@@ -245,27 +260,29 @@ def remove_conversation(cid):
     )
 
 
+    return r.status_code == 200
+
 
 
 
 def ask(question):
 
 
-    payload={
+    payload = {
 
-        "question":question
+        "question": question
 
     }
 
 
     if st.session_state.conversation_id:
 
-        payload["conversation_id"]=(
+        payload["conversation_id"] = (
             st.session_state.conversation_id
         )
 
 
-    r=requests.post(
+    r = requests.post(
 
         f"{API_URL}/ask",
 
@@ -276,7 +293,7 @@ def ask(question):
     )
 
 
-    if r.status_code==200:
+    if r.status_code == 200:
 
         return r.json()
 
@@ -284,14 +301,6 @@ def ask(question):
     st.error(r.text)
 
     return None
-
-
-
-
-
-# Sidebar
-
-
 
 def sidebar():
 
@@ -304,7 +313,7 @@ def sidebar():
         )
 
 
-        user=st.session_state.user
+        user = st.session_state.user
 
 
         st.markdown(
@@ -328,13 +337,14 @@ Role : {user['role']}
         )
 
 
+
         if st.button(
             "🚪 Logout",
             use_container_width=True
         ):
 
 
-            st.session_state.clear()
+            clear_session()
 
             st.rerun()
 
@@ -350,9 +360,9 @@ Role : {user['role']}
         ):
 
 
-            st.session_state.conversation_id=None
+            st.session_state.conversation_id = None
 
-            st.session_state.messages=[]
+            st.session_state.messages = []
 
             st.rerun()
 
@@ -367,15 +377,18 @@ Role : {user['role']}
         )
 
 
-        conversations=get_conversations()
+
+        conversations = get_conversations()
+
 
 
         for conv in conversations:
 
 
-            col1,col2=st.columns(
+            col1,col2 = st.columns(
                 [5,1]
             )
+
 
 
             with col1:
@@ -385,16 +398,16 @@ Role : {user['role']}
 
                     conv["title"][:25],
 
-                    key=conv["id"],
+                    key="open_"+conv["id"],
 
                     use_container_width=True
 
                 ):
 
 
-                    st.session_state.conversation_id=conv["id"]
+                    st.session_state.conversation_id = conv["id"]
 
-                    st.session_state.messages=get_conversation(
+                    st.session_state.messages = get_conversation(
                         conv["id"]
                     )
 
@@ -414,17 +427,25 @@ Role : {user['role']}
                 ):
 
 
-                    remove_conversation(
+                    if remove_conversation(
                         conv["id"]
-                    )
-
-                    st.rerun()
+                    ):
 
 
+                        if st.session_state.conversation_id == conv["id"]:
+
+                            st.session_state.conversation_id = None
+
+                            st.session_state.messages = []
 
 
+                        st.success(
+                            "Conversation deleted"
+                        )
 
-# Home
+
+                        st.rerun()
+
 
 
 
@@ -448,9 +469,6 @@ Your AI assistant for company knowledge
 
 </p>
 
-
-<br>
-
 """,
 
         unsafe_allow_html=True
@@ -458,15 +476,14 @@ Your AI assistant for company knowledge
     )
 
 
+
     st.write(
         "Suggested questions:"
     )
 
 
-    cols=st.columns(3)
 
-
-    suggestions=[
+    suggestions = [
 
         "What are the recruitment steps?",
 
@@ -477,35 +494,60 @@ Your AI assistant for company knowledge
     ]
 
 
+
+    cols = st.columns(3)
+
+
+
     for col,text in zip(cols,suggestions):
 
 
         with col:
 
+
             if st.button(
+
                 text,
-                use_container_width=True
+
+                use_container_width=True,
+
+                key=text
+
             ):
 
-                st.session_state.messages.append(
 
-                    {
-
-                        "role":"user",
-
-                        "content":text
-
-                    }
-
-                )
-
-                st.rerun()
+                response = ask(text)
 
 
+                if response:
 
 
+                    st.session_state.conversation_id = response["conversation_id"]
 
-# Chat
+
+                    st.session_state.messages = [
+
+                        {
+
+                            "role":"user",
+
+                            "content":text
+
+                        },
+
+                        {
+
+                            "role":"assistant",
+
+                            "content":response["answer"]
+
+                        }
+
+                    ]
+
+
+                    st.rerun()
+
 
 
 
@@ -513,6 +555,7 @@ def chat():
 
 
     if not st.session_state.messages:
+
 
         welcome()
 
@@ -525,15 +568,17 @@ def chat():
             msg["role"]
         ):
 
+
             st.write(
                 msg["content"]
             )
 
 
 
-    question=st.chat_input(
+    question = st.chat_input(
         "Ask your question..."
     )
+
 
 
     if question:
@@ -566,7 +611,7 @@ def chat():
             ):
 
 
-                response=ask(
+                response = ask(
                     question
                 )
 
@@ -575,10 +620,10 @@ def chat():
             if response:
 
 
-                st.session_state.conversation_id=response["conversation_id"]
+                st.session_state.conversation_id = response["conversation_id"]
 
 
-                answer=response["answer"]
+                answer = response["answer"]
 
 
                 st.write(answer)
@@ -605,6 +650,7 @@ def chat():
                     st.markdown(
                         "### 📚 Sources"
                     )
+
 
 
                     for src in response["sources"]:
@@ -634,16 +680,11 @@ Page : {src['page']}
 
 
 
-
-
-# Main
-
-
-
 if st.session_state.token is None:
 
 
     login_page()
+
 
 
 else:
