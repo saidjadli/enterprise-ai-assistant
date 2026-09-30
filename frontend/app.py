@@ -1,6 +1,5 @@
 import streamlit as st
 import requests
-from datetime import datetime
 
 
 API_URL = "http://backend:8000/api"
@@ -13,38 +12,56 @@ st.set_page_config(
 )
 
 
-# =========================
-# CSS
-# =========================
-
 st.markdown(
     """
 <style>
 
-.main-title {
-    font-size:40px;
-    font-weight:700;
+.stApp {
+    background:#0f1117;
 }
 
+
+.main-title {
+    font-size:42px;
+    font-weight:800;
+}
+
+
 .subtitle {
-    color:#888;
+    color:#9ca3af;
     font-size:18px;
 }
 
 
-.source-card {
-    background:#1f2937;
-    padding:12px;
-    border-radius:10px;
-    margin-top:8px;
+.profile-card {
+
+    background:#161b27;
+    padding:20px;
+    border-radius:15px;
+    margin-bottom:20px;
+
 }
 
 
-.sidebar-user {
-    background:#111827;
+.source-card {
+
+    background:#161b27;
+    border:1px solid #30363d;
     padding:15px;
     border-radius:12px;
+    margin-top:10px;
+
 }
+
+
+.suggestion {
+
+    background:#161b27;
+    padding:15px;
+    border-radius:12px;
+
+}
+
 
 </style>
 """,
@@ -53,129 +70,228 @@ st.markdown(
 
 
 
-# =========================
-# Session state
-# =========================
+
+# Session
+
+
 
 if "token" not in st.session_state:
-    st.session_state.token = None
+    st.session_state.token=None
+
 
 if "user" not in st.session_state:
-    st.session_state.user = None
+    st.session_state.user=None
+
 
 if "conversation_id" not in st.session_state:
-    st.session_state.conversation_id = None
+    st.session_state.conversation_id=None
+
 
 if "messages" not in st.session_state:
-    st.session_state.messages = []
+    st.session_state.messages=[]
 
 
 
-# =========================
-# Headers
-# =========================
-
-def auth_headers():
+def headers():
 
     return {
-        "Authorization": 
+
+        "Authorization":
         f"Bearer {st.session_state.token}"
+
     }
 
 
 
-# =========================
-# Login
-# =========================
 
-def login():
+# Authentication
 
-    st.title("🔐 Login")
 
-    email = st.text_input("Email")
 
-    password = st.text_input(
+def login_page():
+
+
+    st.markdown(
+        """
+<div class="main-title">
+🔐 Login
+</div>
+
+<p class="subtitle">
+Enterprise Knowledge Assistant
+</p>
+""",
+        unsafe_allow_html=True
+    )
+
+
+    email=st.text_input(
+        "Email"
+    )
+
+
+    password=st.text_input(
         "Password",
         type="password"
     )
 
 
-    if st.button("Login"):
+    if st.button(
+        "Login",
+        use_container_width=True
+    ):
 
-        response = requests.post(
+
+        r=requests.post(
+
             f"{API_URL}/auth/login",
+
             json={
+
                 "email":email,
+
                 "password":password
+
             }
+
         )
 
 
-        if response.status_code == 200:
+        if r.status_code==200:
 
-            data=response.json()
 
-            st.session_state.token = data["access_token"]
-            st.session_state.user = data["user"]
+            data=r.json()
 
-            st.success("Login successful")
+
+            st.session_state.token=data["access_token"]
+
+            st.session_state.user=data["user"]
+
+            st.success(
+                "Login successful"
+            )
 
             st.rerun()
+
 
         else:
 
             st.error(
-                response.json()
+                "Invalid credentials"
             )
 
 
 
-# =========================
-# Conversations
-# =========================
+
+
+
+# API
+
 
 
 def get_conversations():
 
+
     r=requests.get(
+
         f"{API_URL}/conversations",
-        headers=auth_headers()
+
+        headers=headers()
+
     )
 
+
     if r.status_code==200:
+
         return r.json()
+
 
     return []
 
 
 
-def get_messages(cid):
+
+def get_conversation(cid):
+
 
     r=requests.get(
+
         f"{API_URL}/conversations/{cid}",
-        headers=auth_headers()
+
+        headers=headers()
+
     )
+
 
     if r.status_code==200:
 
         return r.json()["messages"]
 
+
     return []
 
 
 
-def delete_conversation(cid):
+
+def remove_conversation(cid):
+
 
     requests.delete(
+
         f"{API_URL}/conversations/{cid}",
-        headers=auth_headers()
+
+        headers=headers()
+
     )
 
 
 
-# =========================
+
+
+def ask(question):
+
+
+    payload={
+
+        "question":question
+
+    }
+
+
+    if st.session_state.conversation_id:
+
+        payload["conversation_id"]=(
+            st.session_state.conversation_id
+        )
+
+
+    r=requests.post(
+
+        f"{API_URL}/ask",
+
+        json=payload,
+
+        headers=headers()
+
+    )
+
+
+    if r.status_code==200:
+
+        return r.json()
+
+
+    st.error(r.text)
+
+    return None
+
+
+
+
+
 # Sidebar
-# =========================
+
+
 
 def sidebar():
 
@@ -192,17 +308,36 @@ def sidebar():
 
 
         st.markdown(
-            f"""
-<div class="sidebar-user">
 
-👤 {user['email']}  
+            f"""
+
+<div class="profile-card">
+
+👤 <b>{user['email']}</b>
+
+<br><br>
 
 Role : {user['role']}
 
 </div>
+
 """,
+
             unsafe_allow_html=True
+
         )
+
+
+        if st.button(
+            "🚪 Logout",
+            use_container_width=True
+        ):
+
+
+            st.session_state.clear()
+
+            st.rerun()
+
 
 
         st.divider()
@@ -214,8 +349,11 @@ Role : {user['role']}
             use_container_width=True
         ):
 
+
             st.session_state.conversation_id=None
+
             st.session_state.messages=[]
+
             st.rerun()
 
 
@@ -223,8 +361,9 @@ Role : {user['role']}
         st.divider()
 
 
-        st.subheader(
-            "💬 History"
+
+        st.markdown(
+            "## 💬 History"
         )
 
 
@@ -241,15 +380,21 @@ Role : {user['role']}
 
             with col1:
 
+
                 if st.button(
-                    conv["title"][:30],
+
+                    conv["title"][:25],
+
                     key=conv["id"],
+
                     use_container_width=True
+
                 ):
+
 
                     st.session_state.conversation_id=conv["id"]
 
-                    st.session_state.messages = get_messages(
+                    st.session_state.messages=get_conversation(
                         conv["id"]
                     )
 
@@ -259,12 +404,17 @@ Role : {user['role']}
 
             with col2:
 
+
                 if st.button(
+
                     "🗑",
-                    key="del"+conv["id"]
+
+                    key="delete_"+conv["id"]
+
                 ):
 
-                    delete_conversation(
+
+                    remove_conversation(
                         conv["id"]
                     )
 
@@ -272,62 +422,99 @@ Role : {user['role']}
 
 
 
-# =========================
-# Chat
-# =========================
 
 
-def ask_question(question):
-
-
-    payload={
-        "question":question
-    }
-
-
-    if st.session_state.conversation_id:
-
-        payload["conversation_id"] = (
-            st.session_state.conversation_id
-        )
-
-
-    r=requests.post(
-        f"{API_URL}/ask",
-        json=payload,
-        headers=auth_headers()
-    )
-
-
-    if r.status_code==200:
-
-        return r.json()
-
-    else:
-
-        st.error(r.text)
-
-        return None
+# Home
 
 
 
-def display_chat():
+def welcome():
 
 
     st.markdown(
+
         """
+
 <div class="main-title">
+
 🤖 Enterprise Knowledge Assistant
+
 </div>
 
-<div class="subtitle">
-Ask questions about company documents
-</div>
+
+<p class="subtitle">
+
+Your AI assistant for company knowledge
+
+</p>
+
 
 <br>
+
 """,
+
         unsafe_allow_html=True
+
     )
+
+
+    st.write(
+        "Suggested questions:"
+    )
+
+
+    cols=st.columns(3)
+
+
+    suggestions=[
+
+        "What are the recruitment steps?",
+
+        "What are the network security rules?",
+
+        "Explain cloud security policy"
+
+    ]
+
+
+    for col,text in zip(cols,suggestions):
+
+
+        with col:
+
+            if st.button(
+                text,
+                use_container_width=True
+            ):
+
+                st.session_state.messages.append(
+
+                    {
+
+                        "role":"user",
+
+                        "content":text
+
+                    }
+
+                )
+
+                st.rerun()
+
+
+
+
+
+# Chat
+
+
+
+def chat():
+
+
+    if not st.session_state.messages:
+
+        welcome()
 
 
 
@@ -353,10 +540,15 @@ Ask questions about company documents
 
 
         st.session_state.messages.append(
+
             {
+
                 "role":"user",
+
                 "content":question
+
             }
+
         )
 
 
@@ -366,35 +558,45 @@ Ask questions about company documents
 
 
 
-        response=ask_question(
-            question
-        )
+        with st.chat_message("assistant"):
 
 
-        if response:
-
-
-            st.session_state.conversation_id = (
-                response["conversation_id"]
-            )
-
-
-            answer=response["answer"]
-
-
-            st.session_state.messages.append(
-                {
-                    "role":"assistant",
-                    "content":answer
-                }
-            )
-
-
-            with st.chat_message(
-                "assistant"
+            with st.spinner(
+                "Searching documents..."
             ):
 
+
+                response=ask(
+                    question
+                )
+
+
+
+            if response:
+
+
+                st.session_state.conversation_id=response["conversation_id"]
+
+
+                answer=response["answer"]
+
+
                 st.write(answer)
+
+
+
+                st.session_state.messages.append(
+
+                    {
+
+                        "role":"assistant",
+
+                        "content":answer
+
+                    }
+
+                )
+
 
 
                 if response.get("sources"):
@@ -407,34 +609,46 @@ Ask questions about company documents
 
                     for src in response["sources"]:
 
+
                         st.markdown(
+
                             f"""
+
 <div class="source-card">
 
-📄 {src['document']}  
+📄 {src['document']}
+
+<br>
 
 Page : {src['page']}
 
 </div>
+
 """,
+
                             unsafe_allow_html=True
+
                         )
 
 
 
-# =========================
-# Application
-# =========================
+
+
+
+
+# Main
+
 
 
 if st.session_state.token is None:
 
 
-    login()
+    login_page()
 
 
 else:
 
+
     sidebar()
 
-    display_chat()
+    chat()
