@@ -302,6 +302,106 @@ def ask(question):
 
     return None
 
+
+def get_documents():
+
+    r = requests.get(
+        f"{API_URL}/documents/",
+        headers=headers()
+    )
+
+    if r.status_code == 200:
+        return r.json()
+
+    return []
+
+
+
+def upload_document(file):
+
+    files = {
+        "file": (
+            file.name,
+            file,
+            "application/pdf"
+        )
+    }
+
+    r = requests.post(
+        f"{API_URL}/documents/upload",
+        files=files,
+        headers=headers()
+    )
+
+    if r.status_code == 200:
+        return r.json()
+
+    return None
+
+
+
+def delete_document(filename):
+
+    r = requests.delete(
+        f"{API_URL}/documents/{filename}",
+        headers=headers()
+    )
+
+    return r.status_code == 200
+
+
+
+def document_manager():
+
+    st.divider()
+
+    st.markdown("## 📚 Documents")
+
+    documents = get_documents()
+
+    for doc in documents:
+
+        col1, col2 = st.columns([5,1])
+
+        with col1:
+            size = round(doc["size"] / 1024, 2)
+            st.write(f"📄 {doc['filename']} ({size} KB)")
+
+        with col2:
+            if st.button("🗑", key="doc_delete_" + doc["filename"]):
+                if delete_document(doc["filename"]):
+                    st.success("Document deleted")
+                    st.rerun()
+
+    if not documents:
+        st.info("No documents available")
+
+    st.markdown("### ➕ Upload PDF")
+
+    uploaded_file = st.file_uploader(
+        "Choose a PDF",
+        type=["pdf"]
+    )
+
+    if uploaded_file:
+
+        if st.button(
+            "Upload document",
+            use_container_width=True
+        ):
+
+            result = upload_document(uploaded_file)
+
+            if result:
+                st.success(
+                    f"{result['filename']} uploaded"
+                )
+                st.info("Indexing started...")
+                st.rerun()
+            else:
+                st.error("Upload failed")
+
+
 def sidebar():
 
 
@@ -447,6 +547,9 @@ Role : {user['role']}
                         st.rerun()
 
 
+
+
+        document_manager()
 
 
 def welcome():
