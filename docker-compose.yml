@@ -1,9 +1,5 @@
 services:
 
-  
-  # Redis
-  
-
   redis:
     image: redis:7-alpine
 
@@ -27,10 +23,6 @@ services:
     restart: unless-stopped
 
 
-  
-  # Backend
-  
-
   backend:
     image: ${COMPOSE_PROJECT_NAME:-enterprise-ai-assistant}-backend
 
@@ -50,14 +42,9 @@ services:
       - REDIS_URL=redis://redis:6379/0
 
     volumes:
-      # Persistent Chroma vector database
       - chroma_data:/app/vectorstore
-
-      # PDF documents
       - ./data/documents:/app/data/documents
-
-      # Persistent authentication database
-      - users_data:/app/data/auth
+      - users_data:/app/data
 
     depends_on:
       redis:
@@ -80,13 +67,8 @@ services:
     restart: unless-stopped
 
 
-  
-  # Ingestion
-  
-
   ingestion:
-    # Use the same image as backend, including when only backend
-    # is rebuilt.
+
     image: ${COMPOSE_PROJECT_NAME:-enterprise-ai-assistant}-backend
 
     build:
@@ -97,10 +79,7 @@ services:
       - .env
 
     volumes:
-      # Chroma database
       - chroma_data:/app/vectorstore
-
-      # PDF documents
       - ./data/documents:/app/data/documents
 
     command:
@@ -112,10 +91,6 @@ services:
     profiles:
       - ingestion
 
-
-  
-  # Frontend
-  
 
   frontend:
     build:
@@ -137,17 +112,10 @@ services:
     restart: unless-stopped
 
 
-
-# Persistent volumes
-
-
 volumes:
 
-  # Chroma vector database
   chroma_data:
 
-  # Redis conversation memory
   redis_data:
 
-  # Authentication / users database
   users_data:
