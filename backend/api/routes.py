@@ -15,7 +15,7 @@ from backend.rag.load_vectorstore import load_vectorstore
 from backend.rag.retriever import get_retriever
 from backend.rag.chain import create_rag_chain
 from backend.rag.service import ask_question
-
+from backend.services.title_generator import generate_title
 
 from backend.memory.redis_memory import ConversationMemory
 
@@ -86,7 +86,9 @@ def ask(
 
         conversation_id = create_conversation(
             user_id=current_user["id"],
-            title=request.question[:50]
+            title=generate_title(
+                request.question
+            )
         )
 
 
