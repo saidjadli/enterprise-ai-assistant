@@ -1,15 +1,16 @@
 from fastapi import FastAPI
 
 from backend.api.routes import router
-
-from backend.config.settings import settings
-
-from backend.utils.logger import get_logger
-
 from backend.api.documents import router as documents_router
 
-logger = get_logger(__name__)
+from backend.auth.routes import router as auth_router
+from backend.auth.models import init_database
 
+from backend.config.settings import settings
+from backend.utils.logger import get_logger
+
+
+logger = get_logger(__name__)
 
 
 app = FastAPI(
@@ -19,14 +20,36 @@ app = FastAPI(
 
 
 
+# Main API routes
+
+
 app.include_router(
     router,
     prefix="/api"
 )
 
+
+
+# Authentication routes
+
+
+app.include_router(
+    auth_router,
+    prefix="/api/auth"
+)
+
+
+
+# Document management routes
+
+
 app.include_router(
     documents_router
 )
+
+
+
+# Application startup
 
 
 @app.on_event("startup")
@@ -40,6 +63,12 @@ def startup_event():
         f"Environment: {settings.ENVIRONMENT}"
     )
 
+    # Initialize authentication database
+    init_database()
+
+
+
+# Root endpoint
 
 
 @app.get("/")
@@ -52,17 +81,20 @@ def root():
 
 
 
+# Health endpoint
+
+
 @app.get("/health")
 def health():
 
     return {
 
-        "status": "healthy",
+        "status":
+        "healthy",
 
         "service":
         settings.APP_NAME,
 
         "environment":
         settings.ENVIRONMENT
-
     }

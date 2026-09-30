@@ -1,5 +1,9 @@
 services:
 
+  
+  # Redis
+  
+
   redis:
     image: redis:7-alpine
 
@@ -12,6 +16,7 @@ services:
           "redis-cli",
           "ping"
         ]
+
       interval: 5s
       timeout: 3s
       retries: 10
@@ -21,6 +26,10 @@ services:
 
     restart: unless-stopped
 
+
+  
+  # Backend
+  
 
   backend:
     image: ${COMPOSE_PROJECT_NAME:-enterprise-ai-assistant}-backend
@@ -41,8 +50,14 @@ services:
       - REDIS_URL=redis://redis:6379/0
 
     volumes:
+      # Persistent Chroma vector database
       - chroma_data:/app/vectorstore
+
+      # PDF documents
       - ./data/documents:/app/data/documents
+
+      # Persistent authentication database
+      - users_data:/app/data/auth
 
     depends_on:
       redis:
@@ -56,6 +71,7 @@ services:
           "-c",
           "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"
         ]
+
       interval: 10s
       timeout: 5s
       retries: 5
@@ -64,8 +80,13 @@ services:
     restart: unless-stopped
 
 
+  
+  # Ingestion
+  
+
   ingestion:
-    # Use the same image as backend, including when only backend is rebuilt.
+    # Use the same image as backend, including when only backend
+    # is rebuilt.
     image: ${COMPOSE_PROJECT_NAME:-enterprise-ai-assistant}-backend
 
     build:
@@ -76,7 +97,10 @@ services:
       - .env
 
     volumes:
+      # Chroma database
       - chroma_data:/app/vectorstore
+
+      # PDF documents
       - ./data/documents:/app/data/documents
 
     command:
@@ -88,6 +112,10 @@ services:
     profiles:
       - ingestion
 
+
+  
+  # Frontend
+  
 
   frontend:
     build:
@@ -109,8 +137,17 @@ services:
     restart: unless-stopped
 
 
+
+# Persistent volumes
+
+
 volumes:
 
+  # Chroma vector database
   chroma_data:
 
+  # Redis conversation memory
   redis_data:
+
+  # Authentication / users database
+  users_data:

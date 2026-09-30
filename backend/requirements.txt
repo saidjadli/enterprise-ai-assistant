@@ -27,3 +27,6 @@ pypdf
 torch==2.5.1+cpu
 
 python-multipart
+
+PyJWT
+pwdlib[argon2]

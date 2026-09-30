@@ -22,6 +22,12 @@ class Settings(BaseSettings):
 
     BACKEND_PORT: int = 8000
 
+    JWT_SECRET_KEY: str
+
+    JWT_ALGORITHM: str = "HS256"
+    
+    JWT_EXPIRE_MINUTES: int = 60
+
 
     model_config = SettingsConfigDict(
         env_file=".env"
